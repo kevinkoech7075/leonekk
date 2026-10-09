@@ -32,6 +32,7 @@ type TCardArray = {
     id: string;
     icon: React.ReactElement;
     content: React.ReactElement;
+    description: string;
     callback: () => void;
 };
 
@@ -65,6 +66,7 @@ const Cards = observer(({ is_mobile, has_dashboard_strategies }: TCardProps) => 
                 <DerivLightMyComputerIcon height='48px' width='48px' />
             ),
             content: is_mobile ? <Localize i18n_default_text='Local' /> : <Localize i18n_default_text='My computer' />,
+            description: localize('Import an existing bot from an XML file on your device.'),
             callback: () => {
                 openFileLoader();
                 /* [AI] - Analytics event tracking removed - see migrate-docs/MONITORING_PACKAGES.md for re-implementation guide */
@@ -75,6 +77,7 @@ const Cards = observer(({ is_mobile, has_dashboard_strategies }: TCardProps) => 
             id: 'google-drive',
             icon: <DerivLightGoogleDriveIcon height='48px' width='48px' />,
             content: <Localize i18n_default_text='Google Drive' />,
+            description: localize('Open a bot saved in your connected Google Drive.'),
             callback: () => {
                 openGoogleDriveDialog();
                 /* [AI] - Analytics event tracking removed - see migrate-docs/MONITORING_PACKAGES.md for re-implementation guide */
@@ -85,6 +88,7 @@ const Cards = observer(({ is_mobile, has_dashboard_strategies }: TCardProps) => 
             id: 'bot-builder',
             icon: <DerivLightBotBuilderIcon height='48px' width='48px' />,
             content: <Localize i18n_default_text='Bot Builder' />,
+            description: localize('Connect drag-and-drop blocks to build your own strategy.'),
             callback: () => {
                 setActiveTab(DBOT_TABS.BOT_BUILDER);
                 /* [AI] - Analytics event tracking removed - see migrate-docs/MONITORING_PACKAGES.md for re-implementation guide */
@@ -95,6 +99,7 @@ const Cards = observer(({ is_mobile, has_dashboard_strategies }: TCardProps) => 
             id: 'quick-strategy',
             icon: <DerivLightQuickStrategyIcon height='48px' width='48px' />,
             content: <Localize i18n_default_text='Quick strategy' />,
+            description: localize('Choose a ready-made template and adjust it to your needs.'),
             callback: () => {
                 setActiveTab(DBOT_TABS.BOT_BUILDER);
                 setFormVisibility(true);
@@ -106,82 +111,82 @@ const Cards = observer(({ is_mobile, has_dashboard_strategies }: TCardProps) => 
         // Hide the Google Drive tile when the feature isn't configured (no GD_* env vars).
         .filter(action => action.id !== 'google-drive' || is_google_drive_configured);
 
-    return React.useMemo(
-        () => (
+    return (
+        <div
+            className={classNames('tab__dashboard__table', {
+                'tab__dashboard__table--minimized': has_dashboard_strategies && is_mobile,
+            })}
+        >
             <div
-                className={classNames('tab__dashboard__table', {
-                    'tab__dashboard__table--minimized': has_dashboard_strategies && is_mobile,
+                className={classNames('tab__dashboard__table__tiles', {
+                    'tab__dashboard__table__tiles--minimized': has_dashboard_strategies && is_mobile,
                 })}
+                id='tab__dashboard__table__tiles'
             >
-                <div
-                    className={classNames('tab__dashboard__table__tiles', {
-                        'tab__dashboard__table__tiles--minimized': has_dashboard_strategies && is_mobile,
-                    })}
-                    id='tab__dashboard__table__tiles'
-                >
-                    {actions.map(icons => {
-                        const { icon, content, callback, id } = icons;
-                        return (
-                            <div
-                                key={id}
-                                className={classNames('tab__dashboard__table__block', {
-                                    'tab__dashboard__table__block--minimized': has_dashboard_strategies && is_mobile,
+                {actions.map(icons => {
+                    const { icon, content, description, callback, id } = icons;
+                    return (
+                        <button
+                            key={id}
+                            type='button'
+                            id={id}
+                            onClick={callback}
+                            className={classNames('tab__dashboard__table__block dashboard-action', {
+                                'tab__dashboard__table__block--minimized': has_dashboard_strategies && is_mobile,
+                                'dashboard-action--featured': id === 'quick-strategy',
+                            })}
+                        >
+                            <span
+                                className={classNames('tab__dashboard__table__images', {
+                                    'tab__dashboard__table__images--minimized': has_dashboard_strategies,
                                 })}
+                                aria-hidden='true'
                             >
-                                <div
-                                    className={classNames('tab__dashboard__table__images', {
-                                        'tab__dashboard__table__images--minimized': has_dashboard_strategies,
-                                    })}
-                                    width='8rem'
-                                    height='8rem'
-                                    icon={icon}
-                                    id={id}
-                                    onClick={() => {
-                                        callback();
-                                    }}
-                                >
-                                    {icon}
-                                </div>
-                                <Text color='prominent' size={is_mobile ? 'xxs' : 'xs'}>
+                                {icon}
+                            </span>
+                            <span className='dashboard-action__body'>
+                                <Text color='prominent' weight='bold' size='s'>
                                     {content}
                                 </Text>
-                            </div>
-                        );
-                    })}
+                                <span className='dashboard-action__description'>{description}</span>
+                            </span>
+                            <span className='dashboard-action__arrow' aria-hidden='true'>
+                                ↗
+                            </span>
+                        </button>
+                    );
+                })}
 
-                    {!isDesktop ? (
-                        <Dialog
-                            title={dialog_options.title}
-                            is_visible={is_dialog_open}
-                            onCancel={onCloseDialog}
-                            is_mobile_full_width
-                            className='dc-dialog__wrapper--google-drive'
-                            has_close_icon
-                        >
+                {!isDesktop ? (
+                    <Dialog
+                        title={dialog_options.title}
+                        is_visible={is_dialog_open}
+                        onCancel={onCloseDialog}
+                        is_mobile_full_width
+                        className='dc-dialog__wrapper--google-drive'
+                        has_close_icon
+                    >
+                        <GoogleDrive />
+                    </Dialog>
+                ) : (
+                    <MobileFullPageModal
+                        is_modal_open={is_dialog_open}
+                        className='load-strategy__wrapper'
+                        header={localize('Load strategy')}
+                        onClickClose={() => {
+                            setPreviewOnPopup(false);
+                            onCloseDialog();
+                        }}
+                        height_offset='80px'
+                    >
+                        <div label='Google Drive' className='google-drive-label'>
                             <GoogleDrive />
-                        </Dialog>
-                    ) : (
-                        <MobileFullPageModal
-                            is_modal_open={is_dialog_open}
-                            className='load-strategy__wrapper'
-                            header={localize('Load strategy')}
-                            onClickClose={() => {
-                                setPreviewOnPopup(false);
-                                onCloseDialog();
-                            }}
-                            height_offset='80px'
-                        >
-                            <div label='Google Drive' className='google-drive-label'>
-                                <GoogleDrive />
-                            </div>
-                        </MobileFullPageModal>
-                    )}
-                </div>
-                <DashboardBotList />
+                        </div>
+                    </MobileFullPageModal>
+                )}
             </div>
-        ),
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [is_dialog_open, has_dashboard_strategies, is_google_drive_configured]
+            <DashboardBotList />
+        </div>
     );
 });
 
